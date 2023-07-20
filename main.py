@@ -1,5 +1,5 @@
 import requests
-
+from config import API_TOKEN
 import logging
 
 from aiogram import Bot, Dispatcher, executor, types
@@ -7,13 +7,13 @@ from aiogram.contrib.fsm_storage.memory import MemoryStorage
 from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters.state import State, StatesGroup
 
-API_TOKEN = '5944894990:AAF1ivQiWLxnRbG6_E0sapKwlUbZwoF78zw'
+TOKEN = API_TOKEN
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 
 # Initialize bot and dispatcher
-bot = Bot(token=API_TOKEN)
+bot = Bot(token=TOKEN)
 
 
 storage = MemoryStorage()
@@ -67,7 +67,7 @@ async def process_name(message: types.Message, state: FSMContext):
         title = volume["title"]
 
     # Получение автора с установкой значения по умолчанию
-        author = volume.get("authors", ["Автор неизвестен"])
+        author = volume.get("authors", ["автор неизвестен"])
 
         published = volume.get("publishedDate", "год издания неизвестен")
         description = volume.get("description", "описание отсутствует")

@@ -1,48 +1,22 @@
-import requests
-query = input()
+import psycopg2
+from config import host, user, password, db_name
 
 
 
+try:
+    connection = psycopg2.connect(
+        host=host,
+        user=user,
+        password=password,
+        database=db_name
+    )
+    with connection.cursor() as cursor:
+        cursor.execute("SELECT version();")
+        print(f"Server version: {cursor.fetchone()}")
 
-
-
-
-
-
-
-
-
-url = "https://www.googleapis.com/books/v1/volumes"
-
-params = {"q": query, "maxResults": 1}
-response = requests.get(url, params=params).json()
-
-for book in response.get('items', []):
-
-    volume = book["volumeInfo"]
-    title = volume["title"]
-
-    # Получение автора с установкой значения по умолчанию
-    author = volume.get("authors", ["--"])
-
-    published = volume.get("publishedDate", "год издания неизвестен")
-    description = volume.get("description", "описание отсутствует")
-
-    finalansw = [
-        f"Название: {title} \nГод издательства: {published} \nАвтор: {author[0]} \nОписание: {description}"]
-
-    string = ''
-    chars_to_remove = ['[', ']', "'"]
-
-    for i in finalansw:
-        string += str(i)
-        string += ' '
-
-    for char in chars_to_remove:
-        string = string.replace(char, '')
-    print(string)
-
-
-
-
-
+except Exception as _ex:
+    print("Что-то пошло не так.", _ex)
+finally:
+    if connection:
+        connection.close()
+        print("PostgreSQL соединение закрыто.")

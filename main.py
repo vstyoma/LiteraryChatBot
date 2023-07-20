@@ -52,20 +52,9 @@ async def cancel_handler(message: types.Message, state: FSMContext):
 async def process_name(message: types.Message, state: FSMContext):
 
     await state.finish()
-      # <-- Получаем название
-
 
 
     url = "https://www.googleapis.com/books/v1/volumes"
-
-
-
-
-
-
-
-
-
 
 
 
@@ -74,42 +63,28 @@ async def process_name(message: types.Message, state: FSMContext):
 
     for book in response.get('items', []):
 
-
         volume = book["volumeInfo"]
         title = volume["title"]
-        author = volume["authors"]
+
+    # Получение автора с установкой значения по умолчанию
+        author = volume.get("authors", ["Автор неизвестен"])
 
         published = volume.get("publishedDate", "год издания неизвестен")
         description = volume.get("description", "описание отсутствует")
 
-        if author:
+        finalansw = [
+            f"Название: *{title}* \nГод издательства: *{published}* \nАвтор: *{author[0]}* \nОписание: _{description}_"]
 
-            finalansw = [f"Название: *{title}* \nГод издательства: *{published}* \nАвтор: *{author}* \nОписание: _{description}_"]
+        string = ''
+        chars_to_remove = ['[', ']', "'"]
 
-            string = ''
-            chars_to_remove = ['[', ']', "'"]
+        for i in finalansw:
+            string += str(i)
+            string += ' '
 
-            for i in finalansw:
-                        string += str(i)
-                        string += ' '
-
-            for char in chars_to_remove:
-                    string = string.replace(char, '')
-            await message.answer(string, parse_mode="Markdown")
-
-        else:
-            finalansw = [f"Название: *{title}* \nГод издательства: *{published}* \nАвтор: *--* \nОписание: _{description}_"]
-
-            string = ''
-            chars_to_remove = ['[', ']', "'"]
-
-            for i in finalansw:
-                    string += str(i)
-                    string += ' '
-
-            for char in chars_to_remove:
-                    string = string.replace(char, '')
-            await message.answer(string, parse_mode="Markdown")
+        for char in chars_to_remove:
+            string = string.replace(char, '')
+        await message.answer(string, parse_mode="Markdown")
 
 
 

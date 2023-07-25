@@ -1,7 +1,5 @@
 import requests
 
-import psycopg2
-
 from config import *
 
 import logging
@@ -36,9 +34,8 @@ async def send_welcome(message: types.Message):
     cursor = connect.cursor()
     cursor.execute("""CREATE TABLE IF NOT EXISTS login_id(
            id INTEGER,
-           fav_1 VARCHAR(150),
-           fav_2 VARCHAR(150),
-           fav_3 VARCHAR(150)
+           fav_1 VARCHAR(150)
+           
        )""")
     connect.commit()
 
@@ -53,7 +50,7 @@ async def send_welcome(message: types.Message):
     else:
         pass
 
-    await message.reply("Привет!🤗 \n\nЯ -  Литературный Ботик!📚 \n\nНиже мой список команд: \n\n/findinfo - поиск информации о ведённой вами книге. \n Скоро...")
+    await message.reply("Привет!🤗 \n\nЯ -  Литературный Ботик!📚 \n\nНиже мой список команд: \n\n/findinfo - поиск информации о ведённой вами книге. \n\n/myfav - Ваша избранная книга")
 
 
 
@@ -96,14 +93,41 @@ async def process_name(message: types.Message, state: FSMContext):
         volume = book["volumeInfo"]
         title = volume["title"]
 
-    # Получение автора с установкой значения по умолчанию
+
         author = volume.get("authors", ["автор неизвестен"])
 
         published = volume.get("publishedDate", "год издания неизвестен")
         description = volume.get("description", "описание отсутствует")
 
+        url_price = f"https://www.googleapis.com/books/v1/volumes?q={message.text}"
+        response_price = requests.get(url_price)
+        data_price = response_price.json()
+
+        if data_price["totalItems"] == 0:
+            return "Книга не найдена"
+
+        buy_link = data_price["items"][0]["saleInfo"].get("buyLink")
+        price_get = data_price["items"][0]["saleInfo"].get("listPrice")
+
+        if buy_link:
+            print("Success")
+            if price_get:
+                print("Success x2")
+            else:
+                pass
+        else:
+            pass
+
+        amount = int(price_get['amount'])
+
+
+
+
+
+
+
         finalansw = [
-            f"Название: *{title}* \nГод издательства: *{published}* \nАвтор: *{author[0]}* \nОписание: _{description}_"]
+            f"*Название:* *{title}* \n\n*Год издательства:* _{published}_ \n\n*Автор*: _{author[0]}_\n\n*Цена*: _{amount} рублей_ \n\n*Описание*: _{description}_\n\n*Ссылка на покупку*: *{buy_link}*"]
 
         string = ''
         chars_to_remove = ['[', ']', "'"]

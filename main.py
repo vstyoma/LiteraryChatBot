@@ -10,6 +10,7 @@ from aiogram import Bot, Dispatcher, executor, types
 from aiogram.contrib.fsm_storage.memory import MemoryStorage
 from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters.state import State, StatesGroup
+from aiogram.types import ReplyKeyboardMarkup
 
 TOKEN = API_TOKEN
 
@@ -28,13 +29,16 @@ dp = Dispatcher(bot, storage=storage)
 class Form(StatesGroup):
     book_name = State()
 
+mainmenu = ReplyKeyboardMarkup(resize_keyboard=True)
+mainmenu.add("📕Найти книгу").add("💎Корзина")
+
 @dp.message_handler(commands=['start', 'help'])
 async def send_welcome(message: types.Message):
     connect = sqlite3.connect('tg_users.db')
     cursor = connect.cursor()
     cursor.execute("""CREATE TABLE IF NOT EXISTS login_id(
            id INTEGER,
-           fav_1 VARCHAR(150)
+           fav_1 VARCHAR(800)
            
        )""")
     connect.commit()
@@ -50,13 +54,13 @@ async def send_welcome(message: types.Message):
     else:
         pass
 
-    await message.reply("Привет!🤗 \n\nЯ -  Литературный Ботик!📚 \n\nНиже мой список команд: \n\n/findinfo - поиск информации о ведённой вами книге. \n\n/myfav - Ваша избранная книга")
+    await message.reply("Привет!🤗 \n\nЯ -  Литературный Ботик!📚 \n\nЧтобы воспользоваться мною, нажмите на появившиеся кнопки!", reply_markup=mainmenu)
 
 
 
 
 
-@dp.message_handler(commands=['findinfo',])
+@dp.message_handler(text='📕Найти книгу')
 async def find_information(message: types.Message):
      await Form.book_name.set()
      await message.answer("Введите название книги. Введите /cancel для отмены команды.")
@@ -118,16 +122,14 @@ async def process_name(message: types.Message, state: FSMContext):
         else:
             pass
 
-        amount = int(price_get['amount'])
-
-
-
-
-
-
-
-        finalansw = [
-            f"*Название:* *{title}* \n\n*Год издательства:* _{published}_ \n\n*Автор*: _{author[0]}_\n\n*Цена*: _{amount} рублей_ \n\n*Описание*: _{description}_\n\n*Ссылка на покупку*: *{buy_link}*"]
+        if price_get:
+            amount = int(price_get['amount'])
+            finalansw = [
+                f"*Название:* *{title}* \n\n*Год издательства:* _{published}_ \n\n*Автор*: _{author[0]}_\n\n*Цена*: _{amount} рублей_ \n\n*Описание*: _{description}_\n\n*Ссылка на покупку*: *{buy_link}*"]
+        else:
+            amount = "неизвестно"
+            finalansw = [
+                f"*Название:* *{title}* \n\n*Год издательства:* _{published}_ \n\n*Автор*: _{author[0]}_\n\n*Цена*: _{amount}_ \n\n*Описание*: _{description}_\n\n*Ссылка на покупку*: *{buy_link}*"]
 
         string = ''
         chars_to_remove = ['[', ']', "'"]
@@ -140,8 +142,24 @@ async def process_name(message: types.Message, state: FSMContext):
             string = string.replace(char, '')
         await message.answer(string, parse_mode="Markdown")
 
-
-
+# @dp.message_handler(commands=['buy'])
+# async def send_welcome(message: types.Message):
+#     global cursor, connect
+#
+#     people_id = message.chat.id
+#     cursor.execute(f"SELECT fav_1 FROM login_id WHERE id = {people_id}")
+#     data = cursor.fetchone()
+#
+#     if data is None:
+#         user_id = [message.chat.id]
+#         cursor.execute("INSERT INTO login_id (id) VALUES (?);", user_id)
+#         connect.commit()
+#     else:
+#         pass
+#
+#
+#
+#     await message.answer("Книги в корзине (_совершение покупки осуществляется в Google Books_): zzz", parse_mode="Markdown")
 
 
 if __name__ == '__main__':

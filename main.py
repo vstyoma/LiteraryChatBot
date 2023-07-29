@@ -1,5 +1,5 @@
 import requests
-
+import wikipedia
 from config import *
 
 import logging
@@ -28,9 +28,10 @@ dp = Dispatcher(bot, storage=storage)
 
 class Form(StatesGroup):
     book_name = State()
+    wiki_name = State()
 
 mainmenu = ReplyKeyboardMarkup(resize_keyboard=True)
-mainmenu.add("📕Найти книгу").add("💎Корзина")
+mainmenu.add("📕Найти книгу").add("💎Корзина").add("🖥Найти страницу на Википедии")
 
 @dp.message_handler(commands=['start', 'help'])
 async def send_welcome(message: types.Message):
@@ -147,16 +148,60 @@ async def process_name(message: types.Message, state: FSMContext):
 
 @dp.callback_query_handler()
 async def callback_query_keyboard(callback_query: types.CallbackQuery):
+
+    message = callback_query.message
+    people_id = message.chat.id
+
     if callback_query.data == 'true_add':
-        global cursor, connect, people_id, user_id, finalansw
+        global finalansw
+
+        conn = sqlite3.connect('tg_users.db')
+
+        cursor = conn.cursor()
+
         cursor.execute(f"SELECT fav_1 FROM login_id WHERE id = {people_id}")
-        data = cursor.fetchone()
-        print("Корзина заполнена.")
-        if data is None:
+
+        result = cursor.fetchone()
+
+
+        if result is not None:
+            print(result[0])
+
             cursor.execute("INSERT INTO login_id (fav_1) VALUES (?);", finalansw)
-            connect.commit()
+            conn.commit()
+            await message.answer("Добавлено")
+
+
+
+        elif result is None:
+            cursor.execute("INSERT INTO login_id (fav_1) VALUES (?);", finalansw)
+            conn.commit()
+            await message.answer("Добавлено в корзину")
         else:
             pass
+
+@dp.message_handler(text='🖥Найти страницу на Википедии')
+async def find_wiki(message: types.Message):
+    await Form.wiki_name.set()
+    await message.answer("Введите какой-либо термин. Введите /cancel для отмены команды.")
+
+@dp.message_handler(state='^', commands=['cancel'])
+async def cancel_handler(message: types.Message, state: FSMContext):
+    current_wikistate = await state.get_state()
+    if current_wikistate is None:
+        return
+
+
+    await state.finish()
+    await message.reply('Отменено.')
+
+@dp.message_handler(state=Form.wiki_name)
+async def process_name(message: types.Message, state: FSMContext):
+    await state.finish()
+
+    wikipedia.set_lang("ru")
+    wiki_query = wikipedia.summary(message.text)
+    await message.answer(f"*Вот что мы нашли*: \n\n_{wiki_query}_", parse_mode="Markdown")
 
 
 

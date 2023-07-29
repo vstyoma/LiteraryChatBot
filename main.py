@@ -10,7 +10,7 @@ from aiogram import Bot, Dispatcher, executor, types
 from aiogram.contrib.fsm_storage.memory import MemoryStorage
 from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters.state import State, StatesGroup
-from aiogram.types import ReplyKeyboardMarkup
+from aiogram.types import ReplyKeyboardMarkup, InlineKeyboardMarkup, InlineKeyboardButton
 
 TOKEN = API_TOKEN
 
@@ -82,6 +82,8 @@ async def cancel_handler(message: types.Message, state: FSMContext):
 @dp.message_handler(state=Form.book_name)
 async def process_name(message: types.Message, state: FSMContext):
 
+    sql_buts = InlineKeyboardMarkup(row_width=1).add(InlineKeyboardButton(text='Добавить в корзину', callback_data='true_add'),InlineKeyboardButton(text='Удалить из корзины', callback_data='true_delete'))
+
     await state.finish()
 
 
@@ -140,7 +142,23 @@ async def process_name(message: types.Message, state: FSMContext):
 
         for char in chars_to_remove:
             string = string.replace(char, '')
-        await message.answer(string, parse_mode="Markdown")
+        await message.answer(string, parse_mode="Markdown", reply_markup=sql_buts)
+
+
+@dp.callback_query_handler()
+async def callback_query_keyboard(callback_query: types.CallbackQuery):
+    if callback_query.data == 'true_add':
+        global cursor, connect, people_id, user_id, finalansw
+        cursor.execute(f"SELECT fav_1 FROM login_id WHERE id = {people_id}")
+        data = cursor.fetchone()
+        print("Корзина заполнена.")
+        if data is None:
+            cursor.execute("INSERT INTO login_id (fav_1) VALUES (?);", finalansw)
+            connect.commit()
+        else:
+            pass
+
+
 
 # @dp.message_handler(commands=['buy'])
 # async def send_welcome(message: types.Message):

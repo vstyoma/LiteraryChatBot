@@ -31,7 +31,7 @@ class Form(StatesGroup):
     wiki_name = State()
 
 mainmenu = ReplyKeyboardMarkup(resize_keyboard=True)
-mainmenu.add("📕Найти книгу").add("💎Корзина").add("🖥Найти страницу на Википедии")
+mainmenu.add("📕Найти книгу").add("💎Корзина").add("🖥Найти страницу на Википедии").add("🎁Книга на чтение")
 
 @dp.message_handler(commands=['start', 'help'])
 async def send_welcome(message: types.Message):
@@ -79,11 +79,11 @@ async def cancel_handler(message: types.Message, state: FSMContext):
     await message.reply('Отменено.')
 
 
-
+title = ""
 @dp.message_handler(state=Form.book_name)
 async def process_name(message: types.Message, state: FSMContext):
-
-    sql_buts = InlineKeyboardMarkup(row_width=1).add(InlineKeyboardButton(text='Добавить в корзину', callback_data='true_add'),InlineKeyboardButton(text='Удалить из корзины', callback_data='true_delete'))
+    global title
+    sql_buts = InlineKeyboardMarkup(row_width=1).add(InlineKeyboardButton(text='Добавить в корзину', callback_data='true_add'))
 
     await state.finish()
 
@@ -146,44 +146,62 @@ async def process_name(message: types.Message, state: FSMContext):
         await message.answer(string, parse_mode="Markdown", reply_markup=sql_buts)
 
 
-@dp.callback_query_handler()
-async def callback_query_keyboard(callback_query: types.CallbackQuery):
-
+@dp.callback_query_handler(lambda c: c.data == 'true_add')
+async def add_to_cart_handler(callback_query: types.CallbackQuery):
+    global title
     message = callback_query.message
     people_id = message.chat.id
 
-    if callback_query.data == 'true_add':
-        global finalansw
-
-        conn = sqlite3.connect('tg_users.db')
-
-        cursor = conn.cursor()
-
-        cursor.execute(f"SELECT fav_1 FROM login_id WHERE id = {people_id}")
-
-        result = cursor.fetchone()
+    # Получите название книги из callback_query
 
 
-        if result is not None:
-            print(result[0])
+    # Добавьте название книги в базу данных
+    conn = sqlite3.connect('tg_users.db')
+    cursor = conn.cursor()
+    cursor.execute(f"UPDATE login_id SET fav_1 = '{title}' WHERE id = {people_id}")
+    conn.commit()
 
-            cursor.execute("INSERT INTO login_id (fav_1) VALUES (?);", finalansw)
-            conn.commit()
-            await message.answer("Добавлено")
+    await message.answer("Книга добавлена список. Напишите /mybooks для просмотра списка")
+
+@dp.message_handler(text=['🎁Книга на чтение'])
+async def show_my_books(message: types.Message):
+
+    people_id = message.chat.id
 
 
+    conn = sqlite3.connect('tg_users.db')
+    cursor = conn.cursor()
+    cursor.execute(f"SELECT fav_1 FROM login_id WHERE id = {people_id}")
+    results = cursor.fetchall()
 
-        elif result is None:
-            cursor.execute("INSERT INTO login_id (fav_1) VALUES (?);", finalansw)
-            conn.commit()
-            await message.answer("Добавлено в корзину")
-        else:
-            pass
+
+    if results:
+
+
+        response = f"_Ваша книга на чтение:_ *{results}*"
+    else:
+        response = "_Вы еще не добавили ни одной книги в корзину._"
+
+    str_db = ''
+    chars_to_remove = ['[', ']', "'", ",", "(", ")"]
+
+    for i in response:
+        str_db += str(i)
+        str_db += ''
+
+    for char in chars_to_remove:
+        str_db = str_db.replace(char, '')
+
+
+    await message.answer(str_db, parse_mode="Markdown")
+
+
 
 @dp.message_handler(text='🖥Найти страницу на Википедии')
 async def find_wiki(message: types.Message):
     await Form.wiki_name.set()
     await message.answer("Введите какой-либо термин. Введите /cancel для отмены команды.")
+
 
 @dp.message_handler(state='^', commands=['cancel'])
 async def cancel_handler(message: types.Message, state: FSMContext):
@@ -205,24 +223,8 @@ async def process_name(message: types.Message, state: FSMContext):
 
 
 
-# @dp.message_handler(commands=['buy'])
-# async def send_welcome(message: types.Message):
-#     global cursor, connect
-#
-#     people_id = message.chat.id
-#     cursor.execute(f"SELECT fav_1 FROM login_id WHERE id = {people_id}")
-#     data = cursor.fetchone()
-#
-#     if data is None:
-#         user_id = [message.chat.id]
-#         cursor.execute("INSERT INTO login_id (id) VALUES (?);", user_id)
-#         connect.commit()
-#     else:
-#         pass
-#
-#
-#
-#     await message.answer("Книги в корзине (_совершение покупки осуществляется в Google Books_): zzz", parse_mode="Markdown")
+
+
 
 
 if __name__ == '__main__':

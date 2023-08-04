@@ -116,34 +116,41 @@ async def process_name(message: types.Message, state: FSMContext):
         buy_link = data_price["items"][0]["saleInfo"].get("buyLink")
         price_get = data_price["items"][0]["saleInfo"].get("listPrice")
 
-        if buy_link:
-            print("Success")
-            if price_get:
-                print("Success x2")
-            else:
-                pass
-        else:
-            pass
+
+
+        finalansw = []
 
         if price_get:
             amount = int(price_get['amount'])
-            finalansw = [
-                f"*Название:* *{title}* \n\n*Год издательства:* _{published}_ \n\n*Автор*: _{author[0]}_\n\n*Цена*: _{amount} рублей_ \n\n*Описание*: _{description}_\n\n*Ссылка на покупку*: *{buy_link}*"]
+            finalansw.append(f"*Название:* *{title}*")
+
+            if published != "год издания неизвестен":
+                finalansw.append(f"*Год издательства:* _{published}_")
+
+            if author[0] != "автор неизвестен":
+                finalansw.append(f"*Автор:* _{author[0]}_")
+            finalansw.append(f"*Цена:* _{amount} рублей_")
+
+            if description != "описание отсутствует":
+                finalansw.append(f"*Описание:* _{description}_")
+
+            if buy_link:
+                finalansw.append(f"*Ссылка на покупку:* *{buy_link}*")
         else:
-            amount = "неизвестно"
-            finalansw = [
-                f"*Название:* *{title}* \n\n*Год издательства:* _{published}_ \n\n*Автор*: _{author[0]}_\n\n*Цена*: _{amount}_ \n\n*Описание*: _{description}_\n\n*Ссылка на покупку*: *{buy_link}*"]
+            finalansw.append(f"*Название:* *{title}*")
 
-        string = ''
-        chars_to_remove = ['[', ']', "'"]
+            if published != "год издания неизвестен":
+                finalansw.append(f"*Год издательства:* _{published}_")
 
-        for i in finalansw:
-            string += str(i)
-            string += ' '
+            if author[0] != "автор неизвестен":
+                finalansw.append(f"*Автор:* _{author[0]}_")
+            finalansw.append(f"*Цена:* неизвестно")
 
-        for char in chars_to_remove:
-            string = string.replace(char, '')
-        await message.answer(string, parse_mode="Markdown", reply_markup=sql_buts)
+            if description != "описание отсутствует":
+                finalansw.append(f"*Описание:* _{description}_")
+
+        response = '\n\n'.join(finalansw)
+        await message.answer(response, parse_mode="Markdown", reply_markup=sql_buts)
 
 
 @dp.callback_query_handler(lambda c: c.data == 'true_add')
@@ -161,7 +168,7 @@ async def add_to_cart_handler(callback_query: types.CallbackQuery):
     cursor.execute(f"UPDATE login_id SET fav_1 = '{title}' WHERE id = {people_id}")
     conn.commit()
 
-    await message.answer("Книга добавлена список. Напишите /mybooks для просмотра списка")
+    await message.answer("Книга добавлена в избранное. Нажмите на кнопку *Книга на чтение* для просмотра избранной книги", parse_mode="Markdown")
 
 @dp.message_handler(text=['🎁Книга на чтение'])
 async def show_my_books(message: types.Message):

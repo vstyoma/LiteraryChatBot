@@ -124,14 +124,14 @@ async def process_name(message: types.Message, state: FSMContext):
             amount = int(price_get['amount'])
             finalansw.append(f"*Название:* *{title}*")
 
-            if published != "год издания неизвестен":
+            if published:
                 finalansw.append(f"*Год издательства:* _{published}_")
 
             if author[0] != "автор неизвестен":
                 finalansw.append(f"*Автор:* _{author[0]}_")
             finalansw.append(f"*Цена:* _{amount} рублей_")
 
-            if description != "описание отсутствует":
+            if description:
                 finalansw.append(f"*Описание:* _{description}_")
 
             if buy_link:
@@ -139,14 +139,14 @@ async def process_name(message: types.Message, state: FSMContext):
         else:
             finalansw.append(f"*Название:* *{title}*")
 
-            if published != "год издания неизвестен":
+            if published:
                 finalansw.append(f"*Год издательства:* _{published}_")
 
-            if author[0] != "автор неизвестен":
+            if author[0]:
                 finalansw.append(f"*Автор:* _{author[0]}_")
-            finalansw.append(f"*Цена:* неизвестно")
 
-            if description != "описание отсутствует":
+
+            if description:
                 finalansw.append(f"*Описание:* _{description}_")
 
         response = '\n\n'.join(finalansw)

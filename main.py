@@ -1,3 +1,5 @@
+#Импорт всех нужных модулей
+
 import requests
 import wikipedia
 from config import *
@@ -12,6 +14,8 @@ from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters.state import State, StatesGroup
 from aiogram.types import ReplyKeyboardMarkup, InlineKeyboardMarkup, InlineKeyboardButton
 
+#Базовая конфигурация (токен и др.)
+
 TOKEN = API_TOKEN
 
 # Configure logging
@@ -25,13 +29,21 @@ storage = MemoryStorage()
 dp = Dispatcher(bot, storage=storage)
 
 
+#Создание машины состояния
 
 class Form(StatesGroup):
     book_name = State()
     wiki_name = State()
 
+
+#Меню
+
+
 mainmenu = ReplyKeyboardMarkup(resize_keyboard=True)
 mainmenu.add("📕Найти книгу").add("💎Корзина").add("🖥Найти страницу на Википедии").add("🎁Книга на чтение")
+
+
+#Команда /start, подключение к ДБ и вывод
 
 @dp.message_handler(commands=['start', 'help'])
 async def send_welcome(message: types.Message):
@@ -60,6 +72,7 @@ async def send_welcome(message: types.Message):
 
 
 
+#Команда "Найти книгу" с машиной состояния и отменой
 
 @dp.message_handler(text='📕Найти книгу')
 async def find_information(message: types.Message):
@@ -80,10 +93,13 @@ async def cancel_handler(message: types.Message, state: FSMContext):
 
 
 title = ""
+
+#Основная часть команды
+
 @dp.message_handler(state=Form.book_name)
 async def process_name(message: types.Message, state: FSMContext):
     global title
-    sql_buts = InlineKeyboardMarkup(row_width=1).add(InlineKeyboardButton(text='Добавить в корзину', callback_data='true_add'))
+    sql_buts = InlineKeyboardMarkup(row_width=1).add(InlineKeyboardButton(text='Добавить в избранное', callback_data='true_add'))
 
     await state.finish()
 
@@ -159,16 +175,21 @@ async def add_to_cart_handler(callback_query: types.CallbackQuery):
     message = callback_query.message
     people_id = message.chat.id
 
-    # Получите название книги из callback_query
 
 
-    # Добавьте название книги в базу данных
+
+    # Добавление название книги в базу данных
+
     conn = sqlite3.connect('tg_users.db')
     cursor = conn.cursor()
     cursor.execute(f"UPDATE login_id SET fav_1 = '{title}' WHERE id = {people_id}")
     conn.commit()
 
     await message.answer("Книга добавлена в избранное. Нажмите на кнопку *Книга на чтение* для просмотра избранной книги", parse_mode="Markdown")
+
+
+
+#Команда "Книга на чтение" + работа с ДБ
 
 @dp.message_handler(text=['🎁Книга на чтение'])
 async def show_my_books(message: types.Message):
@@ -203,6 +224,7 @@ async def show_my_books(message: types.Message):
     await message.answer(str_db, parse_mode="Markdown")
 
 
+#Команда "Найти термин / страницу на Wikipedia"
 
 @dp.message_handler(text='🖥Найти страницу на Википедии')
 async def find_wiki(message: types.Message):

@@ -28,6 +28,7 @@ bot = Bot(token=TOKEN)
 storage = MemoryStorage()
 dp = Dispatcher(bot, storage=storage)
 
+command_count = 0
 
 #Создание машины состояния
 
@@ -40,13 +41,15 @@ class Form(StatesGroup):
 
 
 mainmenu = ReplyKeyboardMarkup(resize_keyboard=True)
-mainmenu.add("📕Найти книгу").add("💎Корзина").add("🖥Найти страницу на Википедии").add("🎁Книга на чтение")
+mainmenu.add("📕Найти книгу").add("🖥Найти страницу на Википедии").add("🎁Книга на чтение").add("📂Статистика")
 
 
 #Команда /start, подключение к ДБ и вывод
 
 @dp.message_handler(commands=['start', 'help'])
 async def send_welcome(message: types.Message):
+    global command_count
+    command_count += 1
     connect = sqlite3.connect('tg_users.db')
     cursor = connect.cursor()
     cursor.execute("""CREATE TABLE IF NOT EXISTS login_id(
@@ -76,6 +79,8 @@ async def send_welcome(message: types.Message):
 
 @dp.message_handler(text='📕Найти книгу')
 async def find_information(message: types.Message):
+     global command_count
+     command_count += 1
      await Form.book_name.set()
      await message.answer("Введите название книги. Введите /cancel для отмены команды.")
 
@@ -167,11 +172,15 @@ async def process_name(message: types.Message, state: FSMContext):
 
         response = '\n\n'.join(finalansw)
         await message.answer(response, parse_mode="Markdown", reply_markup=sql_buts)
+        async for prev_message in message.channel.history(limit=10):
+            if prev_message.message_id != response.message_id:
+                await prev_message.edit_text(prev_message.text.markdown, reply_markup=None)
 
 
 @dp.callback_query_handler(lambda c: c.data == 'true_add')
 async def add_to_cart_handler(callback_query: types.CallbackQuery):
     global title
+
     message = callback_query.message
     people_id = message.chat.id
 
@@ -185,16 +194,17 @@ async def add_to_cart_handler(callback_query: types.CallbackQuery):
     cursor.execute(f"UPDATE login_id SET fav_1 = '{title}' WHERE id = {people_id}")
     conn.commit()
 
-    await message.answer("Книга добавлена в избранное. Нажмите на кнопку *Книга на чтение* для просмотра избранной книги", parse_mode="Markdown")
-
+    await message.answer("Книга была добавлена в избранное", parse_mode="Markdown")
+    await message.delete_reply_markup()
 
 
 #Команда "Книга на чтение" + работа с ДБ
 
 @dp.message_handler(text=['🎁Книга на чтение'])
 async def show_my_books(message: types.Message):
-
-    people_id = message.chat.id
+    global command_count
+    command_count += 1
+    people_id = message.chat.id #Расширить книга на чтение до трех
 
 
     conn = sqlite3.connect('tg_users.db')
@@ -228,6 +238,8 @@ async def show_my_books(message: types.Message):
 
 @dp.message_handler(text='🖥Найти страницу на Википедии')
 async def find_wiki(message: types.Message):
+    global command_count
+    command_count += 1
     await Form.wiki_name.set()
     await message.answer("Введите какой-либо термин. Введите /cancel для отмены команды.")
 
@@ -250,7 +262,11 @@ async def process_name(message: types.Message, state: FSMContext):
     wiki_query = wikipedia.summary(message.text)
     await message.answer(f"*Вот что мы нашли*: \n\n_{wiki_query}_", parse_mode="Markdown")
 
-
+@dp.message_handler(text='📂Статистика')
+async def show_my_books(message: types.Message):
+    global command_count
+    command_count += 1
+    await message.reply(f"_Количество выполненных команд_: {command_count}", parse_mode="Markdown")
 
 
 
